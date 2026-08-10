@@ -32,6 +32,8 @@ public class SecurityConfig {
             .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/login", "/register", "/refresh", "/actuator/health").permitAll()
+                .requestMatchers("/roles/accept-invite").permitAll()
+                .requestMatchers("/roles/**").authenticated()
                 .anyRequest().authenticated()
             )
             .addFilterBefore(new JwtAuthenticationFilter(tokenProvider), UsernamePasswordAuthenticationFilter.class);

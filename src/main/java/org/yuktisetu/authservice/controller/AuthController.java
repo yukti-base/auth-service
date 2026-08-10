@@ -1,6 +1,5 @@
 package org.yuktisetu.authservice.controller;
 
-
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;

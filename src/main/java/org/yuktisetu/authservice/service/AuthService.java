@@ -12,6 +12,7 @@ import org.yuktisetu.authservice.exception.AuthExceptions.InvalidCredentialsExce
 import org.yuktisetu.authservice.exception.AuthExceptions.NoActiveRoleException;
 import org.yuktisetu.authservice.exception.AuthExceptions.UserAlreadyExistsException;
 import org.yuktisetu.authservice.config.JwtProperties;
+import org.yuktisetu.authservice.policy.RoleHierarchyPolicy;
 import org.yuktisetu.authservice.security.JwtTokenProvider;
 
 import org.springframework.dao.DataIntegrityViolationException;
@@ -54,6 +55,8 @@ public class AuthService {
                 .email(email)
                 .phone(phone)
                 .password(passwordEncoder.encode(request.password()))
+                .firstName(request.firstName())
+                .lastName(request.lastName() != null ? request.lastName() : null)
                 .status(UserStatus.ACTIVE)
                 .createdAt(now)
                 .updatedAt(now)

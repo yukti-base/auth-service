@@ -29,4 +29,20 @@ public final class AuthExceptions {
     public static class UserAlreadyExistsException extends RuntimeException {
         public UserAlreadyExistsException() { super("User already exists"); }
     }
+
+    public static class InsufficientAuthorityException extends RuntimeException {
+        public InsufficientAuthorityException() { super("Actor role is not permitted to perform this action on the target role."); }
+    }
+    public static class ScopeViolationException extends RuntimeException {
+        public ScopeViolationException() { super("Target college/department is outside the actor's assigned scope."); }
+    }
+    public static class LastActiveHolderException extends RuntimeException {
+        public LastActiveHolderException() { super("Cannot deactivate the last active holder of this role while active subordinates exist in scope. Add a replacement first."); }
+    }
+    public static class NotYetDeactivatedException extends RuntimeException {
+        public NotYetDeactivatedException() { super("Target must be deactivated before it can be hard-deleted."); }
+    }
+    public static class InvalidInviteException extends RuntimeException {
+        public InvalidInviteException() { super("Invite token is invalid, expired, or already used."); }
+    }
 }

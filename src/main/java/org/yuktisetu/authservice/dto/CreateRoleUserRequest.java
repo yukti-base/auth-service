@@ -5,11 +5,13 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import org.yuktisetu.model.RoleType;
 
-public record RegisterRequest(
+public record CreateRoleUserRequest(
         @NotBlank @Email String email,
         @NotBlank String phone,
-        @NotBlank String password,
+        @NotBlank String firstName,
+        String lastName,     // optional — not everyone has one
         @NotNull RoleType role,
-        String firstName,
-        String lastName
-) {}
+        Long collegeId,
+        Long deptId
+) {
+}
