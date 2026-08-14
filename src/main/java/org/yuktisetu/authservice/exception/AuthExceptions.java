@@ -1,5 +1,7 @@
 package org.yuktisetu.authservice.exception;
 
+import io.jsonwebtoken.ExpiredJwtException;
+
 public final class AuthExceptions {
 
     private AuthExceptions() {}
@@ -44,5 +46,17 @@ public final class AuthExceptions {
     }
     public static class InvalidInviteException extends RuntimeException {
         public InvalidInviteException() { super("Invite token is invalid, expired, or already used."); }
+    }
+
+    public static class TokenExpiredException extends RuntimeException {
+        public TokenExpiredException(ExpiredJwtException e) {
+            super("Token has expired.", e);
+        }
+    }
+
+    public static class InvalidTokenException extends RuntimeException {
+        public InvalidTokenException(Throwable cause) {
+            super("Token is invalid.", cause);
+        }
     }
 }

@@ -35,6 +35,7 @@ dependencies {
     // Version must match what user-dal's build reports (group/version are set
     // in framework's root build.gradle: org.yuktisetu / 1.0.0-SNAPSHOT).
     implementation 'org.yuktisetu:user-dal:1.0.0-SNAPSHOT'
+    implementation 'org.yuktisetu:institute-dal:1.0.0-SNAPSHOT'
 
     // JWT (RS256 signing/verification)
     implementation 'io.jsonwebtoken:jjwt-api:0.12.6'

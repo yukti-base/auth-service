@@ -29,14 +29,20 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http, JwtTokenProvider tokenProvider) throws Exception {
         http
             .csrf(csrf -> csrf.disable()) // stateless bearer-token API, no cookies/sessions to protect
-            .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .cors(cors -> {})
+            .sessionManagement(sm ->
+                    sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+            )
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/login", "/register", "/refresh", "/actuator/health").permitAll()
                 .requestMatchers("/roles/accept-invite").permitAll()
                 .requestMatchers("/roles/**").authenticated()
                 .anyRequest().authenticated()
             )
-            .addFilterBefore(new JwtAuthenticationFilter(tokenProvider), UsernamePasswordAuthenticationFilter.class);
+            .addFilterBefore(
+                    new JwtAuthenticationFilter(tokenProvider),
+                    UsernamePasswordAuthenticationFilter.class
+            );
 
         return http.build();
     }

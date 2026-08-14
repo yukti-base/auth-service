@@ -43,11 +43,26 @@ public class RoleManagementService {
             throw new AuthExceptions.InsufficientAuthorityException();
         }
 
+// --- Target-role scope shape validation (does the ROLE BEING CREATED
+        // have the collegeId/deptId it requires, and nothing extra) ---
 //        validateScopeRequest(req.role(), req.collegeId(), req.deptId());
-//        if (policy.isCollegeScoped(req.role()) && !policy.isTrustWide(actorRole)) {
-//            // actor must actually be assigned to the college they're trying to create into
-//            boolean inScope = roleAssignmentRepository
-//                    .existsByUserIdAndRoleAndCollegeIdAndIsActiveTrue(actor.userId(), actorRole, req.collegeId());
+
+        // --- Actor-scope containment check (is the ACTOR authorized to act
+        // at the location they're requesting, regardless of what role they're
+        // creating) ---
+//        if (!policy.isTrustWide(actorRole)) {
+//            boolean inScope;
+//            if (policy.isDeptScoped(actorRole)) {
+//                // HoD (or any future dept-scoped creator) — authority stops at their own dept
+//                inScope = req.deptId() != null && roleAssignmentRepository
+//                        .(actor.userId(), actorRole, req.deptId());
+//            } else if (policy.isCollegeScoped(actorRole)) {
+//                // College Admin / TnP Coordinator — authority covers the whole college, any dept within it
+//                inScope = req.collegeId() != null && roleAssignmentRepository
+//                        .existsByUserIdAndRoleAndCollegeIdAndIsActiveTrue(actor.userId(), actorRole, req.collegeId());
+//            } else {
+//                inScope = false; // unrecognized scope shape — fail closed, don't default to allow
+//            }
 //            if (!inScope) throw new AuthExceptions.ScopeViolationException();
 //        }
 
@@ -73,8 +88,8 @@ public class RoleManagementService {
         UserRoleAssignment assignment = UserRoleAssignment.builder()
                 .user(newUser)
                 .role(req.role())
-                .collegeId(req.collegeId() != null ? req.collegeId() : null)
-                .deptId(req.deptId()  != null ? req.deptId() : null)
+                .college(null)  // TODO: connect proper ids here
+                .department(null)
                 .isActive(true)
                 .assignedAt(now)
                 .assignedBy(actorEntity)
@@ -123,13 +138,13 @@ public class RoleManagementService {
         } else {
             // Scoped last-holder-with-live-subordinates guard.
             long remainingHolders = policy.isDeptScoped(req.targetRole())
-                    ? roleAssignmentRepository.countByRoleAndCollegeIdAndDeptIdAndIsActiveTrue(req.targetRole(), req.collegeId(), req.deptId())
+                    ? roleAssignmentRepository.countByRoleAndCollegeIdAndDepartmentIdAndIsActiveTrue(req.targetRole(), req.collegeId(), req.deptId())
                     : roleAssignmentRepository.countByRoleAndCollegeIdAndIsActiveTrue(req.targetRole(), req.collegeId());
 
             if (remainingHolders <= 1) {
                 for (RoleType child : policy.childrenOf(req.targetRole())) {
                     boolean childActive = policy.isDeptScoped(child)
-                            ? roleAssignmentRepository.existsByRoleAndCollegeIdAndDeptIdAndIsActiveTrue(child, req.collegeId(), req.deptId())
+                            ? roleAssignmentRepository.existsByRoleAndCollegeIdAndDepartmentIdAndIsActiveTrue(child, req.collegeId(), req.deptId())
                             : roleAssignmentRepository.existsByRoleAndCollegeIdAndIsActiveTrue(child, req.collegeId());
                     if (childActive) throw new AuthExceptions.LastActiveHolderException();
                 }
@@ -137,7 +152,7 @@ public class RoleManagementService {
         }
 
         UserRoleAssignment target = roleAssignmentRepository
-                .findByUserIdAndRoleAndCollegeIdAndDeptIdAndIsActiveTrue(req.targetUserId(), req.targetRole(), req.collegeId(), req.deptId());
+                .findByUserIdAndRoleAndCollegeIdAndDepartmentIdAndIsActiveTrue(req.targetUserId(), req.targetRole(), req.collegeId(), req.deptId());
 
         if (Objects.isNull(target)) {
             throw new AuthExceptions.NoActiveRoleException();
@@ -180,9 +195,12 @@ public class RoleManagementService {
                 .orElseThrow(AuthExceptions.NoActiveRoleException::new);
     }
 
-    private void validateScopeRequest(RoleType role, Long collegeId, Long deptId) {
-        if (policy.isCollegeScoped(role) && collegeId == null) throw new IllegalArgumentException("collegeId required for " + role);
-        if (policy.isDeptScoped(role) && deptId == null) throw new IllegalArgumentException("deptId required for " + role);
-        if (policy.isTrustWide(role) && (collegeId != null || deptId != null)) throw new IllegalArgumentException(role + " is trust-wide, scope must be null");
-    }
+//    private void validateScopeRequest(RoleType role, Long collegeId, Long deptId) {
+//        if (policy.isCollegeScoped(role) && collegeId == null)
+//            throw new AuthExceptions.InvalidScopeRequestException("collegeId required for " + role);
+//        if (policy.isDeptScoped(role) && deptId == null)
+//            throw new AuthExceptions.InvalidScopeRequestException("deptId required for " + role);
+//        if (policy.isTrustWide(role) && (collegeId != null || deptId != null))
+//            throw new AuthExceptions.InvalidScopeRequestException(role + " is trust-wide, scope must be null");
+//    }
 }
