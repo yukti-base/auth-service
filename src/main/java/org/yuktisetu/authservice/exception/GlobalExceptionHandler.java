@@ -62,4 +62,21 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(ErrorResponse.of("INTERNAL_ERROR", "Something went wrong"));
     }
+    @ExceptionHandler(AuthExceptions.InvalidRegistrationRoleException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidRegistrationRole(AuthExceptions.InvalidRegistrationRoleException ex) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(ErrorResponse.of("INVALID_REGISTRATION_ROLE", ex.getMessage()));
+    }
+
+    @ExceptionHandler(AuthExceptions.InsufficientAuthorityException.class)
+    public ResponseEntity<ErrorResponse> handleInsufficientAuthority(AuthExceptions.InsufficientAuthorityException ex) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(ErrorResponse.of("INSUFFICIENT_AUTHORITY", ex.getMessage()));
+    }
+
+    @ExceptionHandler(AuthExceptions.ScopeViolationException.class)
+    public ResponseEntity<ErrorResponse> handleScopeViolation(AuthExceptions.ScopeViolationException ex) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(ErrorResponse.of("SCOPE_VIOLATION", ex.getMessage()));
+    }
 }

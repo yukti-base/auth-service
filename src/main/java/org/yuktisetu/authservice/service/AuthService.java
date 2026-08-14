@@ -47,6 +47,11 @@ public class AuthService {
         String phone = request.phone().trim();
         Date now = new Date();
 
+        if (request.role() != org.yuktisetu.model.RoleType.IT_ADMIN
+                && request.role() != org.yuktisetu.model.RoleType.TNP_SUPER_ADMIN) {
+            throw new org.yuktisetu.authservice.exception.AuthExceptions.InvalidRegistrationRoleException();
+        }
+        
         if (userRepository.existsByEmailIgnoreCaseAndIsDeletedFalse(email)) {
             throw new UserAlreadyExistsException();
         }
