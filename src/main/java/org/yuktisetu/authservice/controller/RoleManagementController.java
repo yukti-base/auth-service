@@ -2,6 +2,7 @@ package org.yuktisetu.authservice.controller;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -14,13 +15,14 @@ import org.yuktisetu.authservice.dto.AcceptInviteRequest;
 import org.yuktisetu.authservice.dto.CreateRoleUserRequest;
 import org.yuktisetu.authservice.dto.DeactivateRoleRequest;
 import org.yuktisetu.authservice.dto.HardDeleteRequest;
-import org.yuktisetu.authservice.security.UserPrincipal;
 import org.yuktisetu.authservice.service.RoleManagementService;
+import org.yuktisetu.core.security.UserPrincipal;
 
 
 @RestController
 @RequestMapping("/roles")
 @RequiredArgsConstructor
+@Slf4j
 public class RoleManagementController {
     private final RoleManagementService roleManagementService;
 
