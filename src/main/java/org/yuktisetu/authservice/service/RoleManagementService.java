@@ -11,7 +11,7 @@ import org.yuktisetu.authservice.dto.DeactivateRoleRequest;
 import org.yuktisetu.authservice.dto.HardDeleteRequest;
 import org.yuktisetu.authservice.exception.AuthExceptions;
 import org.yuktisetu.authservice.policy.RoleHierarchyPolicy;
-import org.yuktisetu.authservice.security.UserPrincipal;
+import org.yuktisetu.core.security.UserPrincipal;
 import org.yuktisetu.db.User;
 import org.yuktisetu.db.UserRoleAssignment;
 import org.yuktisetu.model.RoleType;
@@ -22,7 +22,6 @@ import org.yuktisetu.repository.UserRoleAssignmentRepository;
 import java.util.Date;
 import java.util.List;
 import java.util.Objects;
-import java.util.UUID;
 
 @Service
 @AllArgsConstructor

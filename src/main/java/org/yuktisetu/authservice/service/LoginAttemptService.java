@@ -1,5 +1,6 @@
 package org.yuktisetu.authservice.service;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.yuktisetu.authservice.config.LockoutProperties;
 import org.yuktisetu.authservice.exception.AuthExceptions.AccountLockedException;
@@ -7,6 +8,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.Duration;
 
+@Slf4j
 @Service
 public class LoginAttemptService {
 

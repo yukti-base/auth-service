@@ -1,6 +1,7 @@
 package org.yuktisetu.authservice.controller;
 
 import jakarta.validation.Valid;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -13,6 +14,7 @@ import org.yuktisetu.authservice.dto.RegisterRequest;
 import org.yuktisetu.authservice.dto.RegisterResponse;
 import org.yuktisetu.authservice.service.AuthService;
 
+@Slf4j
 @RestController
 @RequestMapping
 public class AuthController {

@@ -1,6 +1,6 @@
 package org.yuktisetu.authservice.service;
 
-
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.yuktisetu.authservice.config.JwtProperties;
@@ -20,6 +20,7 @@ import java.util.UUID;
  * token is presented twice, the second attempt fails — that's the signal that
  * a token was stolen and used by someone other than the legitimate holder.
  */
+@Slf4j
 @Service
 public class RefreshTokenService {
 
