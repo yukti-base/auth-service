@@ -79,4 +79,10 @@ public final class AuthExceptions {
             super(HttpStatus.FORBIDDEN, "INVALID_REGISTRATION_ROLE", "Public registration is only permitted for IT_ADMIN or TNP_SUPER_ADMIN roles");
         }
     }
+
+    public static class BadCredentialsExceptions extends ApiException {
+        public BadCredentialsExceptions(String error) {
+            super(HttpStatus.BAD_REQUEST, "BAD_CREDENTIALS", error);
+        }
+    }
 }
