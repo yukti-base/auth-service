@@ -38,3 +38,9 @@ out/
 
 /local-keys
 *.DS_Store
+
+# Eclipse workspace
+.metadata/
+
+# Local backups
+*.backup

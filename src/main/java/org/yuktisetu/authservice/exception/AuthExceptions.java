@@ -1,6 +1,5 @@
 package org.yuktisetu.authservice.exception;
 
-import io.jsonwebtoken.ExpiredJwtException;
 import org.springframework.http.HttpStatus;
 import org.yuktisetu.core.exception.ApiException;
 import org.yuktisetu.core.exception.ConflictException;
@@ -50,28 +49,34 @@ public final class AuthExceptions {
             super(HttpStatus.FORBIDDEN, "INSUFFICIENT_AUTHORITY", "Actor role is not permitted to perform this action on the target role.");
         }
     }
-    
+
     public static class ScopeViolationException extends ApiException {
         public ScopeViolationException() {
             super(HttpStatus.FORBIDDEN, "SCOPE_VIOLATION", "Target college/department is outside the actor's assigned scope.");
         }
     }
-    
+
     public static class LastActiveHolderException extends ApiException {
         public LastActiveHolderException() {
             super(HttpStatus.FORBIDDEN, "LAST_ACTIVE_HOLDER", "Cannot deactivate the last active holder of this role while active subordinates exist in scope. Add a replacement first.");
         }
     }
-    
+
     public static class NotYetDeactivatedException extends ConflictException {
         public NotYetDeactivatedException() {
             super("NOT_YET_DEACTIVATED", "Target must be deactivated before it can be hard-deleted.");
         }
     }
-    
+
     public static class InvalidInviteException extends ApiException {
         public InvalidInviteException() {
             super(HttpStatus.UNAUTHORIZED, "INVALID_INVITE", "Invite token is invalid, expired, or already used.");
+        }
+    }
+
+    public static class InvalidRegistrationRoleException extends ApiException {
+        public InvalidRegistrationRoleException() {
+            super(HttpStatus.FORBIDDEN, "INVALID_REGISTRATION_ROLE", "Public registration is only permitted for IT_ADMIN or TNP_SUPER_ADMIN roles");
         }
     }
 }
