@@ -36,7 +36,7 @@ out/
 ### VS Code ###
 .vscode/
 
-/local-keys
+/src/main/resources/keys
 *.DS_Store
 
 # Eclipse workspace

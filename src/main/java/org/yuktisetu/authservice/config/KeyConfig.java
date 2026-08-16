@@ -3,6 +3,8 @@ package org.yuktisetu.authservice.config;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.ResourceLoader;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -19,8 +21,11 @@ import java.util.Base64;
 public class KeyConfig {
 
     @Bean
-    public PrivateKey jwtPrivateKey(JwtProperties props) throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
-        String pem = stripPemHeaders(Files.readString(Path.of(props.getPrivateKeyPath())));
+    public PrivateKey jwtPrivateKey(JwtProperties props, ResourceLoader resourceLoader) throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
+        Resource resource = resourceLoader.getResource(props.getPrivateKeyPath());
+        String pem = stripPemHeaders(
+                new String(resource.getInputStream().readAllBytes())
+        );
         byte[] decoded = Base64.getDecoder().decode(pem);
         PKCS8EncodedKeySpec spec = new PKCS8EncodedKeySpec(decoded);
         return KeyFactory.getInstance("RSA").generatePrivate(spec);
