@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.yuktisetu.authservice.dto.AcceptInviteRequest;
+import org.yuktisetu.authservice.dto.AcceptInviteResponse;
 import org.yuktisetu.authservice.dto.CreateRoleUserRequest;
 import org.yuktisetu.authservice.dto.DeactivateRoleRequest;
 import org.yuktisetu.authservice.dto.HardDeleteRequest;
@@ -39,12 +40,10 @@ public class RoleManagementController {
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
-    // Deliberately NOT behind @PreAuthorize / no JWT required — the caller has
-    // no account yet at this point, only the invite token, which IS the credential.
     @PostMapping("/accept-invite")
-    public ResponseEntity<Void> acceptInvite(@RequestBody @Valid AcceptInviteRequest request) {
-        roleManagementService.acceptInvite(request);
-        return ResponseEntity.ok().build();
+    public ResponseEntity<AcceptInviteResponse> acceptInvite(@RequestBody @Valid AcceptInviteRequest request) {
+        AcceptInviteResponse response = roleManagementService.acceptInvite(request);
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/deactivate")

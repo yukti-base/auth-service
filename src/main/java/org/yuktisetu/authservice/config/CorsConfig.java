@@ -19,7 +19,9 @@ public class CorsConfig {
         // Hoppscotch browser application
         configuration.setAllowedOrigins(List.of(
                 "https://hoppscotch.io",
-                "http://localhost:5173"
+                "http://localhost:5173",
+                "http://localhost:3000",
+                "http://localhost:3001"
         ));
 
         // HTTP methods your API supports

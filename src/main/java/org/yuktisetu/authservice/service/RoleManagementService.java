@@ -2,16 +2,21 @@ package org.yuktisetu.authservice.service;
 
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.yuktisetu.authservice.dto.AcceptInviteRequest;
+import org.yuktisetu.authservice.dto.AcceptInviteResponse;
 import org.yuktisetu.authservice.dto.CreateRoleUserRequest;
 import org.yuktisetu.authservice.dto.DeactivateRoleRequest;
 import org.yuktisetu.authservice.dto.HardDeleteRequest;
 import org.yuktisetu.authservice.exception.AuthExceptions;
 import org.yuktisetu.authservice.policy.RoleHierarchyPolicy;
 import org.yuktisetu.core.exception.NotFoundException;
+import org.yuktisetu.core.notification.config.EmailProperties;
+import org.yuktisetu.core.notification.model.EmailRequest;
+import org.yuktisetu.core.notification.service.EmailService;
 import org.yuktisetu.core.security.UserPrincipal;
 import org.yuktisetu.db.College;
 import org.yuktisetu.db.Department;
@@ -26,6 +31,7 @@ import org.yuktisetu.repository.UserRoleAssignmentRepository;
 
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 @Service
@@ -40,7 +46,8 @@ public class RoleManagementService {
     private final PasswordEncoder passwordEncoder;
     private final CollegeRepository collegeRepository;
     private final DepartmentRepository departmentRepository;
-//    private final NotificationClient notificationClient; // stub interface — wire to your Kafka producer for the Notification Service
+    private final EmailService emailService;
+    private final EmailProperties emailProperties;
 
     @Transactional
     public void createRoleUser(UserPrincipal actor, CreateRoleUserRequest req) {
@@ -115,15 +122,32 @@ public class RoleManagementService {
         roleAssignmentRepository.save(assignment);
 
         String token = inviteTokenService.issue(newUser.getId());
-//        notificationClient.sendInviteEmail(newUser.getEmail(), newUser.getFirstName().concat(" ").concat(newUser.getLastName()), token);
+        String inviteLink = emailProperties.getBaseInviteUrl() + "?token=" + token;
+        String fullName = newUser.getFirstName() + " " + newUser.getLastName();
+        
+        EmailRequest emailRequest = EmailRequest.builder()
+            .to(List.of(newUser.getEmail()))
+            .subject("You're invited to YuktiSetu")
+            .templateName("invite-role-email")
+            .templateVariables(Map.of(
+                "inviteeName", fullName,
+                "inviteLink", inviteLink
+            ))
+            .build();
+        
+        try {
+            emailService.sendEmail(emailRequest);
+            log.info("Invite email sent to {}", newUser.getEmail());
+        } catch (Exception e) {
+            log.error("Failed to send invite email to {}: {}", newUser.getEmail(), e.getMessage(), e);
+        }
         if (log.isDebugEnabled()) {
-            log.debug("Invite issued for userId={}, email={}, token={} (DEV ONLY — never logs at this level in prod)",
-                    newUser.getId(), newUser.getEmail(), token);
+            log.debug("Invite issued for userId={}, email={}, token={}", newUser.getId(), newUser.getEmail(), token);
         }
     }
 
     @Transactional
-    public void acceptInvite(AcceptInviteRequest req) {
+    public AcceptInviteResponse acceptInvite(AcceptInviteRequest req) {
         Long userId = inviteTokenService.consume(req.token());
         if (userId == null) throw new AuthExceptions.InvalidInviteException();
 
@@ -135,6 +159,12 @@ public class RoleManagementService {
         user.setStatus(UserStatus.ACTIVE);
         user.setUpdatedAt(new Date());
         userRepository.save(user);
+
+        List<UserRoleAssignment> activeRoles = roleAssignmentRepository.findByUserIdAndIsActiveTrue(user.getId());
+        String role = activeRoles.isEmpty() ? "STUDENT" : activeRoles.get(0).getRole().name();
+        boolean isAdmin = !role.equals("STUDENT");
+
+        return new AcceptInviteResponse(role, isAdmin);
     }
 
     @Transactional
