@@ -64,7 +64,26 @@ public final class AuthExceptions {
 
     public static class NotYetDeactivatedException extends ConflictException {
         public NotYetDeactivatedException() {
-            super("NOT_YET_DEACTIVATED", "Target must be deactivated before it can be hard-deleted.");
+            super("NOT_YET_DEACTIVATED", "Target must be deactivated before it can be deleted.");
+        }
+    }
+
+    /** Hard delete only: soft-delete the account first, then remove it permanently. */
+    public static class NotSoftDeletedException extends ConflictException {
+        public NotSoftDeletedException() {
+            super("NOT_SOFT_DELETED", "Target must be soft-deleted before it can be permanently removed.");
+        }
+    }
+
+    /**
+     * Hard delete only: connected child or audit records still reference this
+     * user and would be destroyed by the JPA cascade. Refuse rather than cascade.
+     */
+    public static class CascadeBlockedException extends ConflictException {
+        public CascadeBlockedException(String detail) {
+            super("CASCADE_BLOCKED",
+                    "Cannot permanently delete: connected records still reference this user (" + detail
+                            + "). Resolve or reassign them first.");
         }
     }
 
@@ -83,6 +102,12 @@ public final class AuthExceptions {
     public static class BadCredentialsExceptions extends ApiException {
         public BadCredentialsExceptions(String error) {
             super(HttpStatus.BAD_REQUEST, "BAD_CREDENTIALS", error);
+        }
+    }
+
+    public static class PasswordMismatchException extends ApiException {
+        public PasswordMismatchException() {
+            super(HttpStatus.BAD_REQUEST, "PASSWORD_MISMATCH", "New password and confirm password do not match");
         }
     }
 }

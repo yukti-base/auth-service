@@ -29,7 +29,9 @@ public class LoginAttemptService {
         int attempts = raw == null ? 0 : Integer.parseInt(raw);
         if (attempts >= props.getMaxAttempts()) {
             Long ttl = redis.getExpire(key);
-            throw new AccountLockedException(ttl == null ? props.getLockoutWindowSeconds() : ttl);
+            long retryAfter = ttl == null ? props.getLockoutWindowSeconds() : ttl;
+            log.warn("Login blocked for email={}: account locked, retryAfterSeconds={}", email, retryAfter);
+            throw new AccountLockedException(retryAfter);
         }
     }
 
@@ -38,6 +40,9 @@ public class LoginAttemptService {
         Long attempts = redis.opsForValue().increment(key);
         if (attempts != null && attempts == 1L) {
             redis.expire(key, Duration.ofSeconds(props.getLockoutWindowSeconds()));
+        }
+        if (attempts != null && attempts >= props.getMaxAttempts()) {
+            log.warn("Lockout triggered for email={}: {} failed attempts reached", email, attempts);
         }
     }
 

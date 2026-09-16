@@ -2,6 +2,7 @@ package org.yuktisetu.authservice.service;
 
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.yuktisetu.authservice.dto.ChangePasswordRequest;
 import org.yuktisetu.authservice.dto.LoginRequest;
 import org.yuktisetu.authservice.dto.LoginResponse;
 import org.yuktisetu.authservice.dto.RegisterRequest;
@@ -11,6 +12,7 @@ import org.yuktisetu.authservice.exception.AuthExceptions.AccountInactiveExcepti
 import org.yuktisetu.authservice.exception.AuthExceptions.InvalidCredentialsException;
 import org.yuktisetu.authservice.exception.AuthExceptions.NoActiveRoleException;
 import org.yuktisetu.authservice.exception.AuthExceptions.UserAlreadyExistsException;
+import org.yuktisetu.authservice.exception.AuthExceptions.PasswordMismatchException;
 import org.yuktisetu.authservice.config.JwtProperties;
 import org.yuktisetu.authservice.policy.RoleHierarchyPolicy;
 import org.yuktisetu.authservice.security.JwtTokenProvider;
@@ -87,6 +89,8 @@ public class AuthService {
             ));
             String accessToken = jwtTokenProvider.issueAccessToken(savedUser.getId(), savedUser.getEmail(), roleDtos);
 
+            log.info("User registered: userId={}, email={}, role={}", savedUser.getId(), savedUser.getEmail(), request.role());
+
             return new RegisterResponse(
                     savedUser.getId(),
                     savedUser.getEmail(),
@@ -130,15 +134,18 @@ public class AuthService {
                     // "wrong password" from "no such account" by which one skips
                     // the lockout counter, defeating the point of the check above.
                     loginAttemptService.recordFailure(email);
+                    log.warn("Login failed for email={}: no such account", email);
                     throw new InvalidCredentialsException();
                 });
 
         if (!passwordEncoder.matches(request.password(), user.getPassword())) {
             loginAttemptService.recordFailure(email);
+            log.warn("Login failed for userId={}, email={}: invalid credentials", user.getId(), email);
             throw new InvalidCredentialsException();
         }
 
         if (user.getStatus() != UserStatus.ACTIVE) {
+            log.warn("Login rejected for userId={}, email={}: account status={}", user.getId(), email, user.getStatus());
             throw new AccountInactiveException();
         }
 
@@ -147,6 +154,7 @@ public class AuthService {
             // A credentialed-but-roleless account (e.g. mid-offboarding, revoked
             // but not yet deleted) must not be able to log in and hold a token
             // that grants zero access but still "looks" authenticated to clients.
+            log.warn("Login rejected for userId={}, email={}: no active role assignment", user.getId(), email);
             throw new NoActiveRoleException();
         }
 
@@ -160,6 +168,8 @@ public class AuthService {
 
         String accessToken = jwtTokenProvider.issueAccessToken(user.getId(), user.getEmail(), roleDtos);
         String refreshToken = refreshTokenService.issue(user.getId());
+
+        log.info("Login successful: userId={}, email={}", user.getId(), user.getEmail());
 
         return new LoginResponse(
                 accessToken,
@@ -195,11 +205,36 @@ public class AuthService {
         String newAccessToken = jwtTokenProvider.issueAccessToken(user.getId(), user.getEmail(), roleDtos);
         String newRefreshToken = refreshTokenService.issue(user.getId());
 
+        log.info("Token refreshed for userId={}, email={}", user.getId(), user.getEmail());
+
         return new LoginResponse(newAccessToken, newRefreshToken, jwtProperties.getAccessTokenTtlSeconds(),
                 user.getId(), user.getEmail(), roleDtos);
     }
 
     public void logout(String refreshToken) {
         refreshTokenService.revoke(refreshToken);
+    }
+
+    @Transactional
+    public void changePassword(Long userId, ChangePasswordRequest request) {
+        log.info("Change password requested for userId={}", userId);
+
+        if (!request.newPassword().equals(request.confirmPassword())) {
+            throw new PasswordMismatchException();
+        }
+
+        User user = userRepository.findById(userId)
+                .filter(u -> !u.isDeleted())
+                .orElseThrow(AccountInactiveException::new);
+
+        if (!passwordEncoder.matches(request.currentPassword(), user.getPassword())) {
+            throw new InvalidCredentialsException();
+        }
+
+        user.setPassword(passwordEncoder.encode(request.newPassword()));
+        user.setUpdatedAt(new Date());
+        userRepository.save(user);
+
+        log.info("Password changed successfully for userId={}", userId);
     }
 }

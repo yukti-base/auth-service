@@ -16,7 +16,9 @@ import org.yuktisetu.authservice.dto.AcceptInviteResponse;
 import org.yuktisetu.authservice.dto.CreateRoleUserRequest;
 import org.yuktisetu.authservice.dto.DeactivateRoleRequest;
 import org.yuktisetu.authservice.dto.HardDeleteRequest;
+import org.yuktisetu.authservice.dto.SoftDeleteRequest;
 import org.yuktisetu.authservice.service.RoleManagementService;
+import org.yuktisetu.core.response.YuktiSetuResponse;
 import org.yuktisetu.core.security.UserPrincipal;
 
 
@@ -33,37 +35,53 @@ public class RoleManagementController {
     // (a Student token, a Ground Volunteer token) from reaching the service at all.
     @PostMapping("/users")
     @PreAuthorize("hasAnyRole('TNP_SUPER_ADMIN','IT_ADMIN','TNP_COLLEGE_ADMIN','TNP_COORDINATOR','HOD')")
-    public ResponseEntity<Void> createRoleUser(
+    public ResponseEntity<YuktiSetuResponse<Void>> createRoleUser(
             @AuthenticationPrincipal UserPrincipal actor,
             @RequestBody @Valid CreateRoleUserRequest request) {
         roleManagementService.createRoleUser(actor, request);
-        return ResponseEntity.status(HttpStatus.CREATED).build();
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(YuktiSetuResponse.success(null, HttpStatus.CREATED.value(), "Role user created"));
     }
 
     @PostMapping("/accept-invite")
-    public ResponseEntity<AcceptInviteResponse> acceptInvite(@RequestBody @Valid AcceptInviteRequest request) {
+    public ResponseEntity<YuktiSetuResponse<AcceptInviteResponse>> acceptInvite(@RequestBody @Valid AcceptInviteRequest request) {
         AcceptInviteResponse response = roleManagementService.acceptInvite(request);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(YuktiSetuResponse.success(response, "Invite accepted"));
     }
 
     @PostMapping("/deactivate")
     @PreAuthorize("hasAnyAuthority('ROLE_TNP_SUPER_ADMIN','ROLE_IT_ADMIN','ROLE_TNP_COLLEGE_ADMIN','ROLE_TNP_COORDINATOR','ROLE_HOD','ROLE_FACULTY_DEPT_COORDINATOR')")
-    public ResponseEntity<Void> deactivate(
+    public ResponseEntity<YuktiSetuResponse<Void>> deactivate(
             @AuthenticationPrincipal UserPrincipal actor,
             @RequestBody @Valid DeactivateRoleRequest request) {
         roleManagementService.deactivateRoleAssignment(actor, request);
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok(YuktiSetuResponse.success(null, "Role deactivated"));
+    }
+
+    // The ordinary delete, and the only one any role-facing screen should call.
+    // Reversible — the row stays, flagged. The service checks the actor's
+    // authority over every role the target has ever held; this annotation is
+    // only a coarse gate keeping obviously-wrong callers out.
+    @PostMapping("/soft-delete")
+    @PreAuthorize("hasAnyAuthority('ROLE_TNP_SUPER_ADMIN','ROLE_IT_ADMIN','ROLE_TNP_COLLEGE_ADMIN','ROLE_TNP_COORDINATOR','ROLE_HOD','ROLE_FACULTY_DEPT_COORDINATOR')")
+    public ResponseEntity<YuktiSetuResponse<Void>> softDelete(
+            @AuthenticationPrincipal UserPrincipal actor,
+            @RequestBody @Valid SoftDeleteRequest request) {
+        roleManagementService.softDeleteUser(actor, request);
+        return ResponseEntity.ok(YuktiSetuResponse.success(null, "User deleted"));
     }
 
     // Hard delete gets its own path, not a DELETE verb on /users/{id} — an
     // irreversible, IT-Admin-only action deserves to be impossible to trigger
     // by a careless generic REST client hitting the "obvious" delete endpoint.
+    // Unlike /soft-delete above, this one genuinely removes the row, and only
+    // succeeds for an already-soft-deleted account with nothing referencing it.
     @PostMapping("/hard-delete")
     @PreAuthorize("hasAuthority('ROLE_IT_ADMIN')")
-    public ResponseEntity<Void> hardDelete(
+    public ResponseEntity<YuktiSetuResponse<Void>> hardDelete(
             @AuthenticationPrincipal UserPrincipal actor,
             @RequestBody @Valid HardDeleteRequest request) {
         roleManagementService.hardDeleteUser(actor, request);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok(YuktiSetuResponse.success(null, "User permanently deleted"));
     }
 }

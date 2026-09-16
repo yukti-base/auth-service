@@ -1,6 +1,7 @@
 package org.yuktisetu.authservice.security;
 
 import io.jsonwebtoken.Jwts;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.yuktisetu.authservice.config.JwtProperties;
 import org.yuktisetu.authservice.dto.RoleAssignmentDTO;
@@ -12,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+@Slf4j
 @Component
 public class JwtTokenProvider {
 
@@ -37,7 +39,7 @@ public class JwtTokenProvider {
                 })
                 .toList();
 
-        return Jwts.builder()
+        String token = Jwts.builder()
                 .subject(userId.toString())
                 .claim("email", email)
                 .claim("roles", roleClaims)
@@ -47,5 +49,10 @@ public class JwtTokenProvider {
                 .id(UUID.randomUUID().toString())
                 .signWith(privateKey, Jwts.SIG.RS256)
                 .compact();
+
+        // Never log the token value itself — only the fact that one was issued and for whom.
+        log.debug("Access token issued for userId={}, roleCount={}", userId, roles.size());
+
+        return token;
     }
 }
