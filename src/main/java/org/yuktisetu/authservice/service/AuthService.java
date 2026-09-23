@@ -21,14 +21,15 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.yuktisetu.db.User;
-import org.yuktisetu.db.UserRoleAssignment;
-import org.yuktisetu.model.UserStatus;
-import org.yuktisetu.repository.UserRepository;
-import org.yuktisetu.repository.UserRoleAssignmentRepository;
+import org.yuktisetu.identity.db.User;
+import org.yuktisetu.identity.db.UserRoleAssignment;
+import org.yuktisetu.identity.model.UserStatus;
+import org.yuktisetu.identity.repository.UserRepository;
+import org.yuktisetu.identity.repository.UserRoleAssignmentRepository;
 
 import java.util.Date;
 import java.util.List;
+import org.yuktisetu.identity.model.RoleType;
 
 @Service
 @AllArgsConstructor
@@ -49,8 +50,8 @@ public class AuthService {
         String phone = request.phone().trim();
         Date now = new Date();
 
-        if (request.role() != org.yuktisetu.model.RoleType.IT_ADMIN
-                && request.role() != org.yuktisetu.model.RoleType.TNP_SUPER_ADMIN) {
+        if (request.role() != org.yuktisetu.identity.model.RoleType.IT_ADMIN
+                && request.role() != org.yuktisetu.identity.model.RoleType.TNP_SUPER_ADMIN) {
             throw new org.yuktisetu.authservice.exception.AuthExceptions.InvalidRegistrationRoleException();
         }
         

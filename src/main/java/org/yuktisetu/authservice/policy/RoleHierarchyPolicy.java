@@ -1,8 +1,8 @@
 package org.yuktisetu.authservice.policy;
 
 import org.springframework.stereotype.Component;
-import org.yuktisetu.model.RoleHierarchy;
-import org.yuktisetu.model.RoleType;
+import org.yuktisetu.identity.model.RoleHierarchy;
+import org.yuktisetu.identity.model.RoleType;
 
 import java.util.Set;
 

@@ -16,11 +16,11 @@ java {
 
 repositories {
     mavenCentral()
-    // REQUIRED for the user-dal dependency below. mavenCentral() only knows about
-    // public artifacts — org.yuktisetu:user-dal only exists in your local Maven
+    // REQUIRED for the org.yuktisetu:* dependencies below. mavenCentral() only knows about
+    // public artifacts — org.yuktisetu:identity-dal and friends exist only in your local Maven
     // cache (~/.m2) after you run `./gradlew publishToMavenLocal` from framework.
     // Without this line, dependency resolution fails with "could not find
-    // org.yuktisetu:user-dal" even though you just published it.
+    // org.yuktisetu:identity-dal" even though you just published it.
     mavenLocal()
 }
 
@@ -31,12 +31,22 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
 
-    // Shared DAL — published locally from ~/YuktiSetu/framework/user-dal.
-    // Version must match what user-dal's build reports (group/version are set
+    // Per-context DALs — published locally from ~/YuktiSetu/framework.
+    // Version must match what framework's build reports (group/version are set
     // in framework's root build.gradle: org.yuktisetu / 1.0.0-SNAPSHOT).
-    implementation 'org.yuktisetu:user-dal:1.0.0-SNAPSHOT'
+    implementation 'org.yuktisetu:identity-dal:1.0.0-SNAPSHOT'
+    // RoleManagementService's hard-delete blocker reads student profiles and
+    // dynamic field definitions. A cross-context read, to be replaced by an
+    // API call in the next pass.
+    implementation 'org.yuktisetu:profile-dal:1.0.0-SNAPSHOT'
     implementation 'org.yuktisetu:institute-dal:1.0.0-SNAPSHOT'
     implementation 'org.yuktisetu:core:1.0.0-SNAPSHOT'
+
+    // For NotificationDispatchEvent only -- the payload shape shared with
+    // notification-service. auth-service does not touch the outbox; its invite
+    // goes over the synchronous /dispatch door because it is a single
+    // low-stakes send, not a fan-out blast.
+    implementation 'org.yuktisetu:messaging-dal:1.0.0-SNAPSHOT'
 
     // JWT (RS256 signing/verification)
     implementation 'io.jsonwebtoken:jjwt-api:0.12.6'

@@ -13,23 +13,23 @@ import org.yuktisetu.authservice.dto.HardDeleteRequest;
 import org.yuktisetu.authservice.dto.SoftDeleteRequest;
 import org.yuktisetu.authservice.exception.AuthExceptions;
 import org.yuktisetu.authservice.policy.RoleHierarchyPolicy;
+import org.yuktisetu.authservice.client.NotificationClient;
 import org.yuktisetu.core.exception.NotFoundException;
 import org.yuktisetu.core.notification.config.EmailProperties;
-import org.yuktisetu.core.notification.model.EmailRequest;
-import org.yuktisetu.core.notification.service.EmailService;
 import org.yuktisetu.core.security.UserPrincipal;
-import org.yuktisetu.db.College;
-import org.yuktisetu.db.Department;
-import org.yuktisetu.db.User;
-import org.yuktisetu.db.UserRoleAssignment;
-import org.yuktisetu.model.RoleType;
-import org.yuktisetu.model.UserStatus;
-import org.yuktisetu.repository.CollegeRepository;
-import org.yuktisetu.repository.DepartmentRepository;
-import org.yuktisetu.repository.DynamicFieldDefinitionRepository;
-import org.yuktisetu.repository.StudentProfileRepository;
-import org.yuktisetu.repository.UserRepository;
-import org.yuktisetu.repository.UserRoleAssignmentRepository;
+import org.yuktisetu.messaging.events.NotificationDispatchEvent;
+import org.yuktisetu.institute.db.College;
+import org.yuktisetu.institute.db.Department;
+import org.yuktisetu.identity.db.User;
+import org.yuktisetu.identity.db.UserRoleAssignment;
+import org.yuktisetu.identity.model.RoleType;
+import org.yuktisetu.identity.model.UserStatus;
+import org.yuktisetu.institute.repository.CollegeRepository;
+import org.yuktisetu.institute.repository.DepartmentRepository;
+import org.yuktisetu.profile.repository.DynamicFieldDefinitionRepository;
+import org.yuktisetu.profile.repository.StudentProfileRepository;
+import org.yuktisetu.identity.repository.UserRepository;
+import org.yuktisetu.identity.repository.UserRoleAssignmentRepository;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -54,7 +54,7 @@ public class RoleManagementService {
     private final PasswordEncoder passwordEncoder;
     private final CollegeRepository collegeRepository;
     private final DepartmentRepository departmentRepository;
-    private final EmailService emailService;
+    private final NotificationClient notificationClient;
     private final EmailProperties emailProperties;
 
     /**
@@ -128,22 +128,22 @@ public class RoleManagementService {
         String inviteLink = emailProperties.getBaseInviteUrl() + "?token=" + token;
         String fullName = newUser.getFirstName() + " " + newUser.getLastName();
 
-        EmailRequest emailRequest = EmailRequest.builder()
-            .to(List.of(newUser.getEmail()))
-            .subject("You're invited to YuktiSetu")
-            .templateName("invite-role-email")
-            .templateVariables(Map.of(
-                "inviteeName", fullName,
-                "inviteLink", inviteLink
-            ))
-            .build();
+        // Routed through notification-service rather than core's EmailService so
+        // the invite lands in notification_deliveries and can be retried and
+        // audited. admin-service is the only service that still mails directly.
+        //
+        // The dispatch id is derived from the user id, not a fresh uuid: if this
+        // method is ever retried for the same new user, the unique constraint on
+        // (source_event_id, recipient, channel) turns the second attempt into a
+        // no-op instead of a duplicate invite mail.
+        String dispatchId = "role-invite-" + newUser.getId();
 
-        try {
-            emailService.sendEmail(emailRequest);
-            log.info("Invite email sent to {}", newUser.getEmail());
-        } catch (Exception e) {
-            log.error("Failed to send invite email to {}: {}", newUser.getEmail(), e.getMessage(), e);
-        }
+        notificationClient.dispatch(dispatchId, NotificationClient.roleInvite(List.of(
+                new NotificationDispatchEvent.Recipient(
+                        newUser.getId(),
+                        newUser.getEmail(),
+                        fullName,
+                        Map.of("inviteeName", fullName, "inviteLink", inviteLink)))));
         if (log.isDebugEnabled()) {
             log.debug("Invite issued for userId={}, email={}, token={}", newUser.getId(), newUser.getEmail(), token);
         }

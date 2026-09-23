@@ -1,6 +1,6 @@
 package org.yuktisetu.authservice.dto;
 
-import org.yuktisetu.model.UserStatus;
+import org.yuktisetu.identity.model.UserStatus;
 
 public record RegisterResponse(
         Long userId,
