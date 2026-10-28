@@ -1,6 +1,6 @@
 package org.yuktisetu.authservice.service;
 
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -14,6 +14,7 @@ import org.yuktisetu.authservice.dto.SoftDeleteRequest;
 import org.yuktisetu.authservice.exception.AuthExceptions;
 import org.yuktisetu.authservice.policy.RoleHierarchyPolicy;
 import org.yuktisetu.authservice.client.NotificationClient;
+import org.yuktisetu.messaging.events.Dispatches;
 import org.yuktisetu.core.exception.NotFoundException;
 import org.yuktisetu.core.notification.config.EmailProperties;
 import org.yuktisetu.core.security.UserPrincipal;
@@ -40,7 +41,13 @@ import java.util.Map;
 import java.util.Set;
 
 @Service
-@AllArgsConstructor
+// @RequiredArgsConstructor, NOT @AllArgsConstructor. @AllArgsConstructor takes
+// every field including the two non-final @Value ones below, and Lombok does not
+// copy @Value onto the generated constructor parameters -- so Spring saw two bare
+// String parameters, tried to autowire a String bean, and the whole context
+// failed to start in every profile. @RequiredArgsConstructor takes only the final
+// fields and leaves the @Value fields to field injection.
+@RequiredArgsConstructor
 @Slf4j
 public class RoleManagementService {
 
@@ -56,6 +63,12 @@ public class RoleManagementService {
     private final DepartmentRepository departmentRepository;
     private final NotificationClient notificationClient;
     private final EmailProperties emailProperties;
+
+    @org.springframework.beans.factory.annotation.Value("${yuktisetu.portal.student-url:http://localhost:3001}")
+    private String studentPortalUrl;
+
+    @org.springframework.beans.factory.annotation.Value("${yuktisetu.portal.admin-url:http://localhost:3000}")
+    private String adminPortalUrl;
 
     /**
      * The single assignment an actor is acting from for one specific request:
@@ -182,7 +195,44 @@ public class RoleManagementService {
 
         log.info("Invite accepted: userId={}, role={}", user.getId(), role);
 
+        // One confirmation that the account is now live, and where to sign in.
+        //
+        // This is a security notice as much as a welcome: it is what tells the
+        // real owner of the address that somebody has just set a password on
+        // their account, which is the only signal they would ever get if an
+        // invite link were intercepted.
+        //
+        // Dispatch id derived from the user id, not a fresh uuid, for the same
+        // reason the invite's is: the unique constraint then turns a retry into a
+        // no-op rather than a second mail.
+        String fullName = (user.getFirstName() + " " + user.getLastName()).trim();
+        notificationClient.dispatch(
+                "account-activated-" + user.getId(),
+                Dispatches.accountActivated(
+                        isAdmin ? adminPortalUrl : studentPortalUrl,
+                        List.of(new NotificationDispatchEvent.Recipient(
+                                user.getId(), user.getEmail(), fullName,
+                                Map.of("userName", fullName, "roleName", prettyRole(role))))));
+
         return new AcceptInviteResponse(role, isAdmin);
+    }
+
+    /** TNP_COLLEGE_ADMIN -> "TnP College Admin". Role enums are not for reading. */
+    private static String prettyRole(String role) {
+        String[] parts = role.split("_");
+        StringBuilder out = new StringBuilder(role.length());
+        for (String part : parts) {
+            if (part.isEmpty()) {
+                continue;
+            }
+            if (!out.isEmpty()) {
+                out.append(' ');
+            }
+            out.append("TNP".equals(part)
+                    ? "TnP"
+                    : part.charAt(0) + part.substring(1).toLowerCase());
+        }
+        return out.toString();
     }
 
     @Transactional
